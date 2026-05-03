@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Final
 
 SUPPORTED_EXTENSIONS: Final[frozenset[str]] = frozenset(
-    {".png", ".jpg", ".jpeg", ".pdf", ".svg"}
+    {".png", ".jpg", ".jpeg", ".pdf", ".svg", ".md"}
 )
 MAX_FILE_SIZE: Final[int] = 100 * 1024 * 1024  # 100MB
 
@@ -20,6 +20,7 @@ class FileFormat(Enum):
     JPG = "jpg"
     PDF = "pdf"
     SVG = "svg"
+    MD = "md"
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,8 @@ def detect_format(file_path: Path) -> FileFormat:
         return FileFormat.JPG
     if ext == ".pdf":
         return FileFormat.PDF
+    if ext == ".md":
+        return FileFormat.MD
     # ext == ".svg"
     return FileFormat.SVG
 

@@ -56,7 +56,7 @@ uv run pytest tests/ -v
 ### 빌드 (단일 실행 파일)
 
 ```bash
-uv run pyinstaller todo-app.spec
+uv run pyinstaller app.spec
 ```
 
 `dist/SvgViewer.exe` 파일이 생성된다.
@@ -73,7 +73,7 @@ uv run python scripts/clean.py
 
 ```
 ├── pyproject.toml              # 프로젝트 설정, 의존성, 도구 설정
-├── todo-app.spec               # PyInstaller 빌드 설정 (onefile, console=False)
+├── app.spec                    # PyInstaller 빌드 설정 (onefile, console=False)
 ├── src/my_app/
 │   ├── __init__.py
 │   ├── main.py                 # 앱 진입점 (QApplication)

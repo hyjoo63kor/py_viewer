@@ -13,7 +13,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
 
-_PLACEHOLDER_TEXT = "파일을 여기에 드래그 앤 드롭하세요 (PNG, JPG, PDF, SVG)"
+_PLACEHOLDER_TEXT = "파일을 여기에 드래그 앤 드롭하세요 (PNG, JPG, PDF, SVG, MD)"
 
 _DEFAULT_STYLE = (
     "QLabel {"

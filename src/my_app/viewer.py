@@ -7,7 +7,7 @@ from PySide6.QtGui import QPixmap, QResizeEvent
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QVBoxLayout, QWidget
 
 from my_app.drop_zone import DropZone
-from my_app.file_handler import FileInfo, FileValidationError, validate_file
+from my_app.file_handler import FileFormat, FileInfo, FileValidationError, validate_file
 from my_app.renderers import RenderError, render_file
 from my_app.title_panel import TitlePanel
 
@@ -44,7 +44,7 @@ def compute_crop_rect(
     return (crop_x, crop_y, crop_w, crop_h)
 
 
-_FILE_FILTER = "이미지/문서 파일 (*.png *.jpg *.jpeg *.pdf *.svg)"
+_FILE_FILTER = "이미지/문서 파일 (*.png *.jpg *.jpeg *.pdf *.svg *.md)"
 
 
 class Viewer(QMainWindow):
@@ -68,6 +68,8 @@ class Viewer(QMainWindow):
         self._pan_offset_x: int = 0
         self._pan_offset_y: int = 0
         self._drag_start_offset: tuple[int, int] = (0, 0)
+        self._current_page: int = 1
+        self._total_pages: int = 1
 
         # 위젯 생성
         self._title_panel = TitlePanel()
@@ -95,6 +97,8 @@ class Viewer(QMainWindow):
         self._title_panel.pan_down_clicked.connect(self._on_pan_down)
         self._title_panel.pan_left_clicked.connect(self._on_pan_left)
         self._title_panel.pan_right_clicked.connect(self._on_pan_right)
+        self._title_panel.prev_page_clicked.connect(self._on_prev_page)
+        self._title_panel.next_page_clicked.connect(self._on_next_page)
 
     # ------------------------------------------------------------------
     # 줌 메서드
@@ -244,6 +248,32 @@ class Viewer(QMainWindow):
         self._apply_pan()
 
     # ------------------------------------------------------------------
+    # 페이지 탐색 메서드
+    # ------------------------------------------------------------------
+
+    def _on_prev_page(self) -> None:
+        """이전 페이지로 이동한다."""
+        if self._current_file_info is None or self._current_page <= 1:
+            return
+        self._current_page -= 1
+        self._zoom_level = self.DEFAULT_ZOOM
+        self._reset_pan_offset()
+        self._title_panel.update_zoom_label(self._zoom_level)
+        self._title_panel.set_page_info(self._current_page, self._total_pages)
+        self._render_file(self._current_file_info)
+
+    def _on_next_page(self) -> None:
+        """다음 페이지로 이동한다."""
+        if self._current_file_info is None or self._current_page >= self._total_pages:
+            return
+        self._current_page += 1
+        self._zoom_level = self.DEFAULT_ZOOM
+        self._reset_pan_offset()
+        self._title_panel.update_zoom_label(self._zoom_level)
+        self._title_panel.set_page_info(self._current_page, self._total_pages)
+        self._render_file(self._current_file_info)
+
+    # ------------------------------------------------------------------
     # 파일 처리
     # ------------------------------------------------------------------
 
@@ -258,6 +288,16 @@ class Viewer(QMainWindow):
         except FileValidationError as e:
             self._drop_zone.show_error(str(e))
             return
+        if file_info.format == FileFormat.PDF:
+            from my_app.renderers import get_pdf_page_count
+
+            self._total_pages = get_pdf_page_count(file_info.path)
+            self._current_page = 1
+            self._title_panel.set_page_info(1, self._total_pages)
+        else:
+            self._total_pages = 1
+            self._current_page = 1
+            self._title_panel.hide_page_nav()
         self._render_file(file_info)
 
     def _render_file(self, file_info: FileInfo) -> None:
@@ -270,7 +310,7 @@ class Viewer(QMainWindow):
                 int(base_size.height() * self._zoom_level),
             )
             try:
-                pixmap = render_file(file_info, zoomed_size)
+                pixmap = render_file(file_info, zoomed_size, page=self._current_page)
             except RenderError as e:
                 self._drop_zone.show_error(str(e))
                 return

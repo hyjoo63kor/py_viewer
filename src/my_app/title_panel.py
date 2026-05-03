@@ -26,6 +26,8 @@ class TitlePanel(QWidget):
     pan_down_clicked = Signal()
     pan_left_clicked = Signal()
     pan_right_clicked = Signal()
+    prev_page_clicked = Signal()
+    next_page_clicked = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """안내 문구, 줌 버튼, 줌 레이블을 포함하는 수평 레이아웃을 구성한다."""
@@ -66,6 +68,23 @@ class TitlePanel(QWidget):
         self._pan_right_button.setFixedWidth(30)
         layout.addWidget(self._pan_right_button)
 
+        # 페이지 네비게이션 위젯
+        self._prev_button = QPushButton("◁")
+        self._prev_button.setFixedWidth(30)
+        layout.addWidget(self._prev_button)
+
+        self._page_label = QLabel("")
+        layout.addWidget(self._page_label)
+
+        self._next_button = QPushButton("▷")
+        self._next_button.setFixedWidth(30)
+        layout.addWidget(self._next_button)
+
+        # 초기 상태: 숨김
+        self._prev_button.setVisible(False)
+        self._page_label.setVisible(False)
+        self._next_button.setVisible(False)
+
         # 오른쪽: 줌 컨트롤
         self._zoom_out_button = QPushButton("-")
         self._zoom_out_button.setFixedWidth(30)
@@ -91,7 +110,27 @@ class TitlePanel(QWidget):
         self._pan_down_button.clicked.connect(self.pan_down_clicked)
         self._pan_left_button.clicked.connect(self.pan_left_clicked)
         self._pan_right_button.clicked.connect(self.pan_right_clicked)
+        self._prev_button.clicked.connect(self.prev_page_clicked)
+        self._next_button.clicked.connect(self.next_page_clicked)
 
     def update_zoom_label(self, zoom_level: float) -> None:
         """줌 레이블을 백분율 형식(예: '100%')으로 갱신한다."""
         self._zoom_label.setText(f"{round(zoom_level * 100)}%")
+
+    def set_page_info(self, current: int, total: int) -> None:
+        """페이지 정보를 갱신하고 네비게이션 위젯의 표시/숨김을 제어한다."""
+        if total <= 1:
+            self.hide_page_nav()
+            return
+        self._prev_button.setVisible(True)
+        self._page_label.setVisible(True)
+        self._next_button.setVisible(True)
+        self._page_label.setText(f"{current}/{total}")
+        self._prev_button.setEnabled(current > 1)
+        self._next_button.setEnabled(current < total)
+
+    def hide_page_nav(self) -> None:
+        """페이지 네비게이션 위젯을 숨긴다."""
+        self._prev_button.setVisible(False)
+        self._page_label.setVisible(False)
+        self._next_button.setVisible(False)
