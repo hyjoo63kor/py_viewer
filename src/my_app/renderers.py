@@ -39,10 +39,10 @@ def render_image(file_path: Path, display_size: QSize) -> QPixmap:
 
 
 def render_markdown(file_path: Path, display_size: QSize) -> QPixmap:
-    """Markdown 파일을 HTML로 변환 후 QPixmap으로 렌더링한다.
+    """Markdown 파일을 HTML로 변환 후 display_size에 맞는 폰트 크기로 렌더링한다.
 
-    기본 너비(800px)로 렌더링한 후 display_size에 맞게 스케일링하여
-    줌인 시에도 텍스트가 확대되어 보이도록 한다.
+    display_size에 비례하여 폰트를 확대/축소하므로 줌인 시에도
+    텍스트가 선명하게 표시된다 (비트맵 확대가 아닌 벡터 품질).
     """
     try:
         text = file_path.read_text(encoding="utf-8")
@@ -53,12 +53,29 @@ def render_markdown(file_path: Path, display_size: QSize) -> QPixmap:
 
     html = markdown.markdown(text, extensions=["fenced_code", "tables"])
 
-    from PySide6.QtGui import QTextDocument
+    from PySide6.QtGui import QFont, QTextDocument
 
+    # display_size 너비를 기준으로 렌더링 (줌 적용된 크기)
+    render_width = display_size.width()
+
+    # 기본 800px 대비 스케일 팩터 계산하여 폰트 크기 조정
     base_width = 800
+    scale_factor = render_width / base_width if base_width > 0 else 1.0
+    base_font_size = 14.0
+    margin = int(20 * scale_factor)
+
+    html = (
+        f'<div style="margin: {margin}px; line-height: 1.6;">'
+        + html
+        + "</div>"
+    )
+
     doc = QTextDocument()
+    font = QFont()
+    font.setPointSizeF(base_font_size * scale_factor)
+    doc.setDefaultFont(font)
     doc.setHtml(html)
-    doc.setTextWidth(float(base_width))
+    doc.setTextWidth(float(render_width))
 
     doc_size = doc.size()
     pixmap = QPixmap(int(doc_size.width()), int(doc_size.height()))
@@ -68,6 +85,7 @@ def render_markdown(file_path: Path, display_size: QSize) -> QPixmap:
     doc.drawContents(painter)
     painter.end()
 
+    # 종횡비 유지하면서 display_size에 맞게 스케일링
     return scale_pixmap(pixmap, display_size)
 
 
@@ -83,7 +101,11 @@ def get_pdf_page_count(file_path: Path) -> int:
 
 
 def render_pdf(file_path: Path, display_size: QSize, page: int = 1) -> QPixmap:
-    """PDF의 지정된 페이지를 이미지로 변환하고 축소한 QPixmap을 반환한다."""
+    """PDF의 지정된 페이지를 display_size에 맞는 해상도로 렌더링한다.
+
+    PyMuPDF의 matrix 파라미터를 사용하여 줌된 크기에 맞는 해상도로
+    직접 렌더링하므로 확대 시에도 선명한 품질을 유지한다.
+    """
     try:
         doc: fitz.Document = fitz.open(str(file_path))
         page_idx = page - 1
@@ -93,7 +115,15 @@ def render_pdf(file_path: Path, display_size: QSize, page: int = 1) -> QPixmap:
                 f"유효하지 않은 페이지 번호입니다: {page} (총 {len(doc)}페이지)"
             )
         pg = doc[page_idx]
-        pix: fitz.Pixmap = pg.get_pixmap()
+
+        # 페이지 크기 대비 display_size에 맞는 스케일 팩터 계산
+        page_rect = pg.rect
+        scale_x = display_size.width() / page_rect.width
+        scale_y = display_size.height() / page_rect.height
+        scale = min(scale_x, scale_y)
+
+        mat = fitz.Matrix(scale, scale)
+        pix: fitz.Pixmap = pg.get_pixmap(matrix=mat)
 
         fmt = QImage.Format.Format_RGB888
         if pix.alpha:
@@ -113,7 +143,7 @@ def render_pdf(file_path: Path, display_size: QSize, page: int = 1) -> QPixmap:
     except Exception as exc:
         raise RenderError("PDF 파일을 열 수 없습니다") from exc
 
-    return scale_pixmap(pixmap, display_size)
+    return pixmap
 
 
 def render_svg(file_path: Path, display_size: QSize) -> QPixmap:

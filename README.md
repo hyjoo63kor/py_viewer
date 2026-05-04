@@ -2,14 +2,16 @@
 
 PySide6 기반 데스크톱 이미지/문서 뷰어 애플리케이션.
 
-PNG, JPG, PDF, SVG 파일을 드래그 앤 드롭 또는 파일 열기 다이얼로그로 열고, 마우스 휠 줌과 Pan 이동으로 콘텐츠를 탐색할 수 있다.
+PNG, JPG, PDF, SVG, Markdown 파일을 드래그 앤 드롭 또는 파일 열기 다이얼로그로 열고, 마우스 휠 줌과 Pan 이동으로 콘텐츠를 탐색할 수 있다.
 
 ## 주요 기능
 
-- **드래그 앤 드롭** — PNG, JPG(JPEG), PDF, SVG 파일을 윈도우에 드롭하면 즉시 표시
+- **드래그 앤 드롭** — PNG, JPG(JPEG), PDF, SVG, Markdown 파일을 윈도우에 드롭하면 즉시 표시
 - **파일 열기 다이얼로그** — "열기" 버튼으로 파일 탐색기에서 파일 선택 (지원 형식 필터 적용)
-- **PDF 미리보기** — PDF 첫 페이지를 이미지로 변환하여 표시 (PyMuPDF)
-- **SVG 렌더링** — Qt 내장 QSvgRenderer로 벡터 그래픽 표시
+- **Markdown 렌더링** — `.md` 파일을 HTML로 변환하여 서식 적용된 상태로 표시
+- **PDF 멀티 페이지** — ◁/▷ 버튼으로 페이지 탐색, 현재 페이지/총 페이지 표시 (단일 페이지 시 숨김)
+- **PDF 고해상도 렌더링** — 줌 크기에 맞는 해상도로 직접 렌더링하여 확대 시에도 선명
+- **SVG 벡터 렌더링** — 줌 크기로 직접 벡터 렌더링하여 확대 시에도 선명
 - **마우스 휠 줌** — 휠 위로 확대(×1.25), 아래로 축소(÷1.25), 범위 10%~1000%
 - **줌 버튼** — 상단 패널의 +/- 버튼으로 줌 조작, 현재 배율 표시
 - **줌 리셋** — "리셋" 버튼으로 줌 100% + Pan 초기화를 한 번에 복귀
@@ -64,7 +66,7 @@ uv run pyinstaller app.spec
 ### 캐시/빌드 정리
 
 ```bash
-uv run python scripts/clean.py
+uv run clean
 ```
 
 `__pycache__`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`, `build/`, `dist/` 등을 삭제한다.
@@ -81,7 +83,7 @@ uv run python scripts/clean.py
 │   ├── drop_zone.py            # 드래그 앤 드롭 + 마우스 이벤트 위젯
 │   ├── title_panel.py          # 열기/줌/리셋/방향 버튼, 배율 표시 패널
 │   ├── file_handler.py         # 파일 검증 (형식, 크기, 존재 여부)
-│   └── renderers.py            # PNG/JPG/PDF/SVG 렌더링
+│   └── renderers.py            # PNG/JPG/PDF/SVG/Markdown 렌더링
 └── tests/
     ├── conftest.py
     ├── test_file_handler.py
@@ -97,6 +99,7 @@ uv run python scripts/clean.py
 | GUI | PySide6 (Qt 6) |
 | PDF 렌더링 | PyMuPDF (fitz) |
 | SVG 렌더링 | PySide6.QtSvg |
+| Markdown 렌더링 | markdown (Python) |
 | 패키지 관리 | uv |
 | 빌드 | PyInstaller |
 | 린터 | ruff |

@@ -7,6 +7,7 @@ from PySide6.QtGui import (
     QDragEnterEvent,
     QDragLeaveEvent,
     QDropEvent,
+    QKeyEvent,
     QMouseEvent,
     QPixmap,
     QWheelEvent,
@@ -51,6 +52,7 @@ class DropZone(QLabel):
     pan_started = Signal(int, int)
     pan_moved = Signal(int, int)
     pan_finished = Signal()
+    page_scroll_requested = Signal(int)  # +1 = PgDn, -1 = PgUp
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """안내 메시지 표시, 드롭 활성화."""
@@ -58,6 +60,7 @@ class DropZone(QLabel):
         self.setAcceptDrops(True)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._drag_start_pos: QPoint | None = None
         self.show_placeholder()
 
@@ -93,6 +96,19 @@ class DropZone(QLabel):
     def wheelEvent(self, event: QWheelEvent) -> None:
         """마우스 휠 이벤트를 zoom_requested 시그널로 전달한다."""
         self.zoom_requested.emit(event.angleDelta().y())
+
+    # ------------------------------------------------------------------
+    # Keyboard event handler
+    # ------------------------------------------------------------------
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """PgUp/PgDn 키로 페이지 스크롤을 요청한다."""
+        if event.key() == Qt.Key.Key_PageDown:
+            self.page_scroll_requested.emit(1)
+        elif event.key() == Qt.Key.Key_PageUp:
+            self.page_scroll_requested.emit(-1)
+        else:
+            super().keyPressEvent(event)
 
     # ------------------------------------------------------------------
     # Mouse pan event handlers

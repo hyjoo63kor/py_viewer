@@ -61,6 +61,7 @@ class Viewer(QMainWindow):
         super().__init__()
         self.resize(800, 600)
         self.setWindowTitle("SvgViewer")
+        self._set_app_icon()
 
         self._current_file_info: FileInfo | None = None
         self._zoom_level: float = self.DEFAULT_ZOOM
@@ -99,6 +100,10 @@ class Viewer(QMainWindow):
         self._title_panel.pan_right_clicked.connect(self._on_pan_right)
         self._title_panel.prev_page_clicked.connect(self._on_prev_page)
         self._title_panel.next_page_clicked.connect(self._on_next_page)
+        self._drop_zone.page_scroll_requested.connect(self._on_page_scroll)
+
+        # 상태 바
+        self.statusBar().showMessage("파일을 열어주세요")
 
     # ------------------------------------------------------------------
     # 줌 메서드
@@ -151,6 +156,29 @@ class Viewer(QMainWindow):
     # ------------------------------------------------------------------
     # 파일 열기 다이얼로그
     # ------------------------------------------------------------------
+
+    def _set_app_icon(self) -> None:
+        """앱 아이콘을 설정한다."""
+        import sys
+        from pathlib import Path
+
+        from PySide6.QtGui import QIcon
+
+        # PyInstaller 번들 환경 대응
+        if getattr(sys, "frozen", False):
+            base = Path(sys._MEIPASS)  # type: ignore[attr-defined]
+        else:
+            base = Path(__file__).parent.parent.parent
+
+        icon_path = base / "resources" / "icon.svg"
+        if icon_path.exists():
+            icon = QIcon(str(icon_path))
+            self.setWindowIcon(icon)
+            from PySide6.QtWidgets import QApplication
+
+            qapp = QApplication.instance()
+            if qapp is not None and isinstance(qapp, QApplication):
+                qapp.setWindowIcon(icon)
 
     def _on_open_clicked(self) -> None:
         """파일 열기 다이얼로그를 표시하고 선택된 파일을 로드한다."""
@@ -247,6 +275,24 @@ class Viewer(QMainWindow):
         self._pan_offset_x += self.PAN_STEP
         self._apply_pan()
 
+    def _on_page_scroll(self, direction: int) -> None:
+        """PgUp/PgDn 키 핸들러.
+
+        멀티 페이지 PDF: 페이지 넘기기 (PgDn=다음, PgUp=이전)
+        그 외: 뷰포트 높이의 80%만큼 수직 Pan 이동
+        """
+        if self._current_file_info is None:
+            return
+        if self._total_pages > 1:
+            if direction > 0:
+                self._on_next_page()
+            else:
+                self._on_prev_page()
+        else:
+            scroll_amount = int(self._drop_zone.size().height() * 0.8)
+            self._pan_offset_y += scroll_amount * direction
+            self._apply_pan()
+
     # ------------------------------------------------------------------
     # 페이지 탐색 메서드
     # ------------------------------------------------------------------
@@ -287,6 +333,7 @@ class Viewer(QMainWindow):
             file_info = validate_file(file_path)
         except FileValidationError as e:
             self._drop_zone.show_error(str(e))
+            self.statusBar().showMessage(f"오류: {e}")
             return
         if file_info.format == FileFormat.PDF:
             from my_app.renderers import get_pdf_page_count
@@ -299,6 +346,7 @@ class Viewer(QMainWindow):
             self._current_page = 1
             self._title_panel.hide_page_nav()
         self._render_file(file_info)
+        self.statusBar().showMessage(str(file_info.path))
 
     def _render_file(self, file_info: FileInfo) -> None:
         """FileInfo를 기반으로 줌 레벨이 적용된 크기로 렌더링한다."""

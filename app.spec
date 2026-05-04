@@ -5,7 +5,7 @@ a = Analysis(
     ["src/my_app/main.py"],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[("resources/icon.svg", "resources")],
     hiddenimports=["PySide6", "fitz"],
     hookspath=[],
     hooksconfig={},
