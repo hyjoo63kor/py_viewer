@@ -21,7 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-svg-viewer = "my_app.main:main"
+app = "my_app.main:main"
 clean = "my_app.clean:clean"
 
 [build-system]

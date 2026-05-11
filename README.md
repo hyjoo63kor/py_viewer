@@ -32,7 +32,7 @@ uv sync
 ## 실행
 
 ```bash
-uv run svg-viewer
+uv run app
 ```
 
 ## 개발
